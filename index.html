@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="description" content="My Website">
+    <meta name="keywords" content="HTML, CSS, JavaScript">
+    <meta name="author" content="John Doe">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jeu</title>
+    <link rel="stylesheet" type="text/css" href="styles.css">
+</head>
+<body>
+    <header>
+        <h1>Pierre, feuille, ciseau, puit</h1>
+        <div>
+            <h3>Player Name:</h3>
+            <span id="user-name"></span>
+        </div>
+    </header>
+    
+    <main>
+        <section>
+            <h2>Score :</h2>
+            <ul id="scores">
+                <li class="rock">Rock: 0 points</li>
+        </section>
+        
+        <section>
+            <form>   
+                <select id="choice" name="choice" title="Choises">
+                    <option value="rock">Rock</option>
+                    <option value="paper">Paper</option>
+                    <option value="scissors">Scissors</option>
+                    <option value="well">Well</option>
+                </select>
+                <button type="button" onclick="sendChoice()">Send</button>
+            </form>
+            <h1 id="cheater" class="error-message"></h1>
+        </section>
+        <section>
+            <h2>Results</h2>
+            <ul id="results">
+            </ul>
+        </section>
+    </main>
+    
+    <footer>
+        <p>&copy; 2022 My Website. All rights reserved.</p>
+    </footer>
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    <script>
+        // Initialize socket.io
+        var socket = io('http://localhost:5000');
+        let id_player, player_name;
+        const urlParams = new URLSearchParams(window.location.search);
+        const cheater = urlParams.get('cheater');
+
+        if (cheater){
+            alert("You are a cheater!");
+            document.getElementById("cheater").innerText = cheater;
+        }
+        
+        socket.on("SWelcome", (data) => {
+            document.getElementById("user-name").innerText = data.player_name;
+            console.log(data);
+            id_player = data.player_id
+            player_name = data.player_name; 
+        });
+
+        socket.on("SNewPlayer", (data) => {
+            console.log(data);
+            alert("New player connected: " + data.player_name);
+        });
+
+        socket.on("SPlayerDisconnected", (data) => {
+            console.log(data);
+            alert("Player disconnected: " + data.player_name);
+        });
+        
+        function sendChoice(){
+            let choice = document.getElementById("choice").value;
+            socket.emit("CPlayerChoice", {player_name: player_name, choice: choice});
+            console.log("Choice sent: " + choice);
+        }
+
+        socket.on("SCheat", (data) => {
+            alert("You are a cheater!");
+            alert("Stop trying to ruin the game !")
+        });
+
+        socket.on("SRestart", (data) => {
+            console.log(data);
+            if (data.scores){
+                alert (data.message)
+            }
+            results = document.getElementById("Score");
+            while (results.firstChild) {
+                results.removeChild(results.firstChild);
+            }
+            for (score in data.scores) {
+                score_div = document.getElementsByClassName(score);
+                if (score_div.length > 0){
+                    score_div[0].innerText = score + ": " + data.scores[score] + " points";
+                } else {
+                    score_div = document.createElement('div');
+                    score_div.innerText = score + ": " + data.scores[score] + " points";
+                    score_div.className = "score " + score;
+                    results.appendChild(score_div);
+                }
+            }
+        });
+
+        socket.on("SPlayerChoice", (data) => {
+            console.log(data);
+            console.log("player " + data.player_name + " choice: " + data.player_choice)
+            if (data.player_name === player_name){
+                alert("You played: " + data.player_choice);
+            } else {
+                alert("Player " + data.player_name + " played !");
+            }
+        });
+
+        socket.on("SResults", (data) => {
+            console.log(data);
+            let keys = Object.keys(data.players);
+            if (data.winner != null && 
+                keys.length === 2 && keys.every(key => key != null && data.players[key] != null)) {
+                console.log("showing results")
+                let player1_name = Object.keys(data.players)[0];
+                let player1_choice = Object.values(data.players)[0];
+                let player2_name = Object.keys(data.players)[1];
+                let player2_choice = Object.values(data.players)[1];
+                let player1 = [player1_name, player1_choice];
+                let player2 = [player2_name, player2_choice];
+
+                console.log("player1: " + player1[0] + ",  " + player1[1]);
+                console.log("player2: " + player2[0] + ",  " + player2[1]);
+
+                let player_local, other_player;
+
+                if (player1[0] === player_name){
+                    player_local = player1;
+                    other_player = player2;
+                } else {
+                    player_local = player2;
+                    other_player = player1;
+                }
+                console.log("local choice: " + player_local[1]);
+                console.log("other choice: " + other_player[1]);
+                
+                let results = document.getElementById("results");
+                let result = document.createElement('div');
+                console.log("initialised the new div")
+                let choices = "Choices: " + player_local[0]+ ": " + player_local[1] + " vs " + other_player[0] + ": " + other_player[1];
+                if (data.winner == 0) {
+                    console.log("It's a tie!");
+                    result.innerText = "Turn: "+ data.turn +": It's a tie! Choices: " + choices;
+                    result.className = "tie";
+
+                } else {
+                    if (data.winner == player_name) {
+                        console.log("You win!");
+                        result.innerText = "Turn: "+ data.turn +": You win! Choices: " + choices;
+                        result.className = "win";
+                    
+                    } else if (player_local == player_name || other_player == player_name) {
+                        console.log("watching is good !")
+                        result.innerText = "Turn: "+ data.turn +": Player " + data.winner + " wins! Choices: " + choices;
+                        result.className = "tie ";
+
+                    } else {
+                        console.log("You lose!");
+                    result.innerText = "Turn: "+ data.turn +": Player " + data.winner + " wins! Choices: " + choices;
+                    result.className = "loss";
+                    }
+                }
+                if (results.childElementCount > 10){
+                    results.removeChild(results.firstChild);
+                }
+                results.appendChild(result);
+                console.log("Results: " + data.winner);
+                console.log("update results");
+            }
+        });
+
+        socket.on('SRedirect', (data) => {
+            console.log(data);
+            window.location.href = data.url;
+        });
+    </script>
+</body>
+</html>

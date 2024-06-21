@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="description" content="My Website">
+    <meta name="keywords" content="HTML, CSS, JavaScript">
+    <meta name="author" content="John Doe">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register Page</title>
+    <link rel="stylesheet" type="text/css" href="styles.css">
+</head>
+<body>
+    <header>
+        <h1>Register</h1>
+        <div>
+            <h3><a href="login">Login</a></h3>
+        </div>
+    </header>
+    
+    <main>
+        <section>
+            <h2>Please enter your username and password to register.</h2>
+            <form action="/register" method="POST">
+                <label for="username">Username:</label><br>
+                <input type="text" id="username" name="username"><br>
+                <label for="password">Password:</label><br>
+                <input type="password" id="password" name="password"><br>
+                <button type="submit" value="Submit">Submit</button>
+            </form>
+            <p id="message"></p>
+        </section>
+    </main>
+    
+    <footer>
+        <p>&copy; 2022 My Website. All rights reserved.</p>
+    </footer>
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const error = urlParams.get('error');
+        const information = urlParams.get('information');
+        const message = document.getElementById('message');
+
+        if (error) {
+            message.className = 'error-message';
+            message.innerText = error;
+        } else if (information) {
+            message.className = 'info-message';
+            message.innerText = information;
+        }
+    </script>
+</body>
+</html>
